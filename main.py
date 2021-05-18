@@ -3,8 +3,8 @@ import random
 
 
 ### Settings ###
-width = 600
-height = 800
+width = 900
+height = 900
 FPS = 30
 
 BLACK = (0, 0, 0)
@@ -13,6 +13,7 @@ GREEN = (0, 255, 0)
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
 GRAY = (128, 128, 128)
+LIGHTBLUE = (0, 155, 155)
 
 pygame.init()
 
@@ -42,7 +43,8 @@ def health_bar(x, y, w, hp):
 def turn(character):
     character.turn = True
     if character in enemies:
-        character.attack(sortedbyspeed[1])
+        target = random.choice([player, player2])
+        character.attack(target)
     else:
         idle = True
         while idle:
@@ -53,7 +55,7 @@ def turn(character):
             
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if button.rect.collidepoint(event.pos):
-                        player.attack(enemy)
+                        character.attack(enemy)
                         button.image.fill(GRAY)
                         idle = False
                         button.able = False
@@ -87,7 +89,7 @@ class Button(pygame.sprite.Sprite):
 
 class Player(pygame.sprite.Sprite):
     def __init__(self, x, y, COL, speed):
-        pygame.sprite.Sprite.__init__(self, all_sprites, characters)
+        pygame.sprite.Sprite.__init__(self, all_sprites, characters, heroes)
         self.image = pygame.Surface([30, 30])
         self.image.fill(COL)
         self.rect = self.image.get_rect()
@@ -106,12 +108,13 @@ class Player(pygame.sprite.Sprite):
             target.hp -= hit
             Value(hit, target, RED)
             self.turn = False
-            print(target.hp)
             sortedbyspeed.remove(self)
             sortedbyspeed.append(self)
 
     def update(self):
         health_bar(self.rect.x, self.rect.top - 12, self.rect.width, self.hp)
+        if self.hp <= 0:
+            self.kill()
         if sortedbyspeed.index(self) == 0:
             self.turn = True
 
@@ -142,6 +145,8 @@ class Red_box(pygame.sprite.Sprite):
     
     def update(self):
         health_bar(self.rect.x, self.rect.top - 12, self.rect.width, self.hp)
+        if self.hp <= 0:
+            self.kill()
         if sortedbyspeed.index(self) == 0:
             self.turn = True
 
@@ -163,8 +168,10 @@ class Value(pygame.sprite.Sprite):
 ### Creating Sprites ###
 all_sprites = pygame.sprite.Group()
 characters = pygame.sprite.Group()
+heroes = pygame.sprite.Group()
 enemies = pygame.sprite.Group()
 player = Player(width / 4, height / 2, YELLOW, 15)
+player2 = Player(width/4 - 50, height/2, LIGHTBLUE, 15)
 enemy = Red_box(3 * width / 4, height / 2)
 button = Button()
 
@@ -178,7 +185,7 @@ pygame.mixer.music.play(-1)
 
 ### Main Loop ###
 sortedbyspeed = sorted(characters, key=lambda x: x.speed, reverse=True)
-while player.hp > 0 and enemy.hp > 0:
+while len(heroes) > 0 and len(enemies) > 0:
     clock.tick(60)
     countdown = pygame.time.get_ticks()
     if countdown - last_turn > cooldown:

@@ -105,8 +105,14 @@ class Player(pygame.sprite.Sprite):
     def attack(self, target):
         if self.turn:
             hit = int(random.randrange(0.8 * self.strength, 1.2 * self.strength))
-            target.hp -= hit
-            Value(hit, target, RED)
+            rng = random.randint(1, 101)
+            if rng <= 20:
+                hit *= 2
+                target.hp -= hit
+                Value(hit, target, WHITE)
+            else:
+                target.hp -= hit
+                Value(hit, target, RED)
             self.turn = False
             sortedbyspeed.remove(self)
             sortedbyspeed.append(self)
@@ -136,8 +142,14 @@ class Red_box(pygame.sprite.Sprite):
     def attack(self, target):
         if self.turn:
             hit = int(random.randrange(0.8 * self.strength, 1.2 * self.strength))
-            target.hp -= hit
-            Value(hit, target, RED)
+            rng = random.randint(1, 101)
+            if rng <= 20:
+                hit *= 2
+                target.hp -= hit
+                Value(hit, target, WHITE)
+            else:
+                target.hp -= hit
+                Value(hit, target, RED)
             self.turn = False
             print(target.hp)
             sortedbyspeed.remove(self)
@@ -200,6 +212,6 @@ while len(heroes) > 0 and len(enemies) > 0:
     background.fill(BLACK)
     all_sprites.draw(background)
     all_sprites.update()
-    pygame.display.flip()
+    pygame.display.update()
 
 pygame.quit()

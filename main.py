@@ -1,4 +1,4 @@
-import pygame
+import pygame, sys
 import random
 
 
@@ -24,17 +24,11 @@ pygame.display.set_caption("Turn-based battle")
 font_name = pygame.font.match_font('Monospace')
 
 ### Functions and Sprites ###
-def draw_text(font_size, text, x, y):
-    font = pygame.font.Font(font_name, font_size)
-    text_surface = font.render(text, True, WHITE)
-    text_rect = text_surface.get_rect()
-    text_rect.midtop = (x, y)
-    background.blit(text_surface, text_rect)
 
-def health_bar(x, y, w, hp):
+def health_bar(x, y, w, hp, max_hp):
     if hp < 0:
         hp = 0
-    fill = (hp/100) * w
+    fill = (hp/max_hp) * w
     outline_rect = pygame.Rect(x, y, w, 10)
     filled_rect = pygame.Rect(x+1, y+1, fill-2, 8)
     pygame.draw.rect(background, WHITE, outline_rect, 1)
@@ -43,28 +37,8 @@ def health_bar(x, y, w, hp):
 def turn(character):
     character.turn = True
     if character in enemies:
-        target = random.choice([player, player2])
+        target = random.choice(party)
         character.attack(target)
-    else:
-        idle = True
-        while idle:
-            button.able = True
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-            
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    if button.rect.collidepoint(event.pos):
-                        character.attack(enemy)
-                        button.image.fill(GRAY)
-                        idle = False
-                        button.able = False
-                
-            #print(random.randint(1, 1000))
-            background.fill(BLACK)
-            all_sprites.draw(background)
-            all_sprites.update()
-            pygame.display.flip()
 
 # Sprites ###
 class Button(pygame.sprite.Sprite):
@@ -82,8 +56,6 @@ class Button(pygame.sprite.Sprite):
     
     def update(self):
         self.image.fill(GRAY)
-        if self.able:
-            self.image.fill(GREEN)
         self.image.blit(self.font.render(self.text, True, WHITE), (20, 10))
         #pass
 
@@ -100,29 +72,30 @@ class Player(pygame.sprite.Sprite):
         self.strength = 10
         self.speed = speed
         self.turn = False
-        health_bar(self.rect.x, self.rect.top - 12, self.rect.width, self.hp)
+        health_bar(self.rect.x, self.rect.top - 12, self.rect.width, self.hp, self.max_hp)
 
     def attack(self, target):
         if self.turn:
+            Value('Attack', self, WHITE)
             hit = int(random.randrange(0.8 * self.strength, 1.2 * self.strength))
             rng = random.randint(1, 101)
             if rng <= 20:
                 hit *= 2
                 target.hp -= hit
+                #attack_announce(self)
                 Value(hit, target, WHITE)
             else:
                 target.hp -= hit
+                #attack_announce(self)
                 Value(hit, target, RED)
             self.turn = False
             sortedbyspeed.remove(self)
             sortedbyspeed.append(self)
 
     def update(self):
-        health_bar(self.rect.x, self.rect.top - 12, self.rect.width, self.hp)
+        health_bar(self.rect.x, self.rect.top - 12, self.rect.width, self.hp, self.max_hp)
         if self.hp <= 0:
             self.kill()
-        if sortedbyspeed.index(self) == 0:
-            self.turn = True
 
 class Red_box(pygame.sprite.Sprite):
     def __init__(self, x, y):
@@ -132,15 +105,16 @@ class Red_box(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.centerx = x
         self.rect.centery = y
-        self.max_hp = 100
-        self.hp = 100
+        self.max_hp = 300
+        self.hp = self.max_hp
         self.strength = 20
         self.speed = 25
         self.turn = False
-        health_bar(self.rect.x, self.rect.top - 12, self.rect.width, self.hp)
+        health_bar(self.rect.x, self.rect.top - 12, self.rect.width, self.hp, self.max_hp)
 
     def attack(self, target):
         if self.turn:
+            Value('Attack', self, WHITE)
             hit = int(random.randrange(0.8 * self.strength, 1.2 * self.strength))
             rng = random.randint(1, 101)
             if rng <= 20:
@@ -151,16 +125,13 @@ class Red_box(pygame.sprite.Sprite):
                 target.hp -= hit
                 Value(hit, target, RED)
             self.turn = False
-            print(target.hp)
             sortedbyspeed.remove(self)
             sortedbyspeed.append(self)
     
     def update(self):
-        health_bar(self.rect.x, self.rect.top - 12, self.rect.width, self.hp)
+        health_bar(self.rect.x, self.rect.top - 12, self.rect.width, self.hp, self.max_hp)
         if self.hp <= 0:
             self.kill()
-        if sortedbyspeed.index(self) == 0:
-            self.turn = True
 
     
 class Value(pygame.sprite.Sprite):
@@ -192,11 +163,20 @@ cooldown = 1000
 last_turn = 0
 
 ### Background music ###
-pygame.mixer.music.load('battle.wav')
-pygame.mixer.music.play(-1)
+#pygame.mixer.music.load('battle.wav')
+#pygame.mixer.music.play(-1)
 
 ### Main Loop ###
 sortedbyspeed = sorted(characters, key=lambda x: x.speed, reverse=True)
+party = []
+mobs = []
+
+for char in sortedbyspeed:
+    if char in heroes:
+        party.append(char)
+    if char in enemies:
+        mobs.append(char)
+
 while len(heroes) > 0 and len(enemies) > 0:
     clock.tick(60)
     countdown = pygame.time.get_ticks()
@@ -207,11 +187,26 @@ while len(heroes) > 0 and len(enemies) > 0:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
-    
-    #print(random.randint(1, 1000))
+            sys.exit()
+        
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if button.rect.collidepoint(event.pos):
+                if sortedbyspeed[0] in heroes:
+                    sortedbyspeed[0].attack(enemy)
+
+    for char in sortedbyspeed:
+        if char.hp <= 0:
+            sortedbyspeed.remove(char)
+            if char in party:
+                party.remove(char)
+            if char in mobs:
+                mobs.remove(char)
+                
+    #print(len(sortedbyspeed))
     background.fill(BLACK)
-    all_sprites.draw(background)
     all_sprites.update()
+    all_sprites.draw(background)
     pygame.display.update()
 
 pygame.quit()
+sys.exit()
